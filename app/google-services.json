@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "188337517818",
+    "project_id": "smartlampproject-92dab",
+    "storage_bucket": "smartlampproject-92dab.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:188337517818:android:b6fd5984c5acc9caa4c543",
+        "android_client_info": {
+          "package_name": "com.example.smart_lamp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_KB8NhC-IY2r-EyoUTqerUbLfv4JQ_K0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
