@@ -47,10 +47,13 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.firebase.database)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Firebase
+    implementation(libs.firebase.database)
+    implementation(libs.firebase.auth)
 
     implementation ("com.larswerkman:HoloColorPicker:1.5")
     implementation ("com.github.codersrouteandroid:flexible-switch:1.0")
