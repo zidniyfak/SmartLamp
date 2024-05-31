@@ -65,8 +65,6 @@ class LoginActivity : AppCompatActivity() {
             RegisterFirebase(email,password)
 
             // Get the email and password from the EditText fields
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
         }
 
         binding.tvSignup.setOnClickListener {

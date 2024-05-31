@@ -57,6 +57,6 @@ dependencies {
 
     implementation ("com.larswerkman:HoloColorPicker:1.5")
     implementation ("com.github.codersrouteandroid:flexible-switch:1.0")
-    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation ("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation ("com.squareup.retrofit2:converter-gson:2.11.0")
 }
