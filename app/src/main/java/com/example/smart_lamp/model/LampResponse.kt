@@ -7,5 +7,5 @@ data class LampResponse(
     val red: Int? = null,
     val green: Int? = null,
     val blue: Int? = null,
-    val status: Int? = null,
+    var status: Int? = null,
 )

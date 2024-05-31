@@ -3,6 +3,7 @@ package com.example.smart_lamp
 import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.Window
 import android.widget.Button
@@ -26,9 +27,7 @@ class LampControllerActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLampControllerBinding
 
     private lateinit var firebaseRef: DatabaseReference
-
     private lateinit var dialog: Dialog
-
     private lateinit var lampList: ArrayList<LampResponse>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +37,7 @@ class LampControllerActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         firebaseRef = FirebaseDatabase.getInstance().getReference("Lamp")
+        dialog = Dialog(this)
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -45,16 +45,15 @@ class LampControllerActivity : AppCompatActivity() {
             insets
         }
 
-
+        // Set up the back button
         binding.back.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
 
+        // Set up RecyclerView
         binding.rvLampList.layoutManager = LinearLayoutManager(this)
         binding.rvLampList.setHasFixedSize(true)
-
-        // Set up RecyclerView
         lampList = arrayListOf<LampResponse>()
         getLampData()
 
@@ -68,8 +67,9 @@ class LampControllerActivity : AppCompatActivity() {
 //            binding.ivLamp1.setImageResource(imageResource)
 //        }
 
+        // Set up Add Lamp button
         binding.fabAddLamp.setOnClickListener {
-            dialog = Dialog(this)
+            // dialog = Dialog(this)
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
             dialog.setContentView(R.layout.dialog_add_lamp)
             dialog.setCancelable(false)
@@ -82,10 +82,7 @@ class LampControllerActivity : AppCompatActivity() {
                 dialog.dismiss()
             }
             dialog.show()
-
-
         }
-
     }
 
     private fun getLampData() {
@@ -99,10 +96,15 @@ class LampControllerActivity : AppCompatActivity() {
                 if (snapshot.exists()) {
                     for (lampSnap in snapshot.children) {
                         val lampData = lampSnap.getValue(LampResponse::class.java)
-                        lampList.add(lampData!!)
+                        lampData?.let { lampList.add(it) }
                     }
-                    val adapter = LampAdapter(lampList)
-                    binding.rvLampList.adapter = adapter
+                    val mAdapter = LampAdapter(lampList, object : LampAdapter.onItemClickListener {
+                        override fun onItemClick(position: Int) {
+                            Log.d("TAG", "onItemClick: $position")
+                            showEditLampDialog(position)
+                        }
+                    })
+                    binding.rvLampList.adapter = mAdapter
 
                     binding.rvLampList.visibility = View.VISIBLE
                     binding.progressBar.visibility = View.GONE
@@ -113,6 +115,46 @@ class LampControllerActivity : AppCompatActivity() {
                 TODO("Not yet implemented")
             }
         })
+    }
+
+    private fun showEditLampDialog(position: Int) {
+
+        val lamp = lampList[position]
+        Log.d("TAG", "showEditLampDialog: ${lamp.lampName}")
+        dialog.setContentView(R.layout.dialog_edit_lamp)
+        dialog.setCancelable(false)
+
+        val etLamp = dialog.findViewById<EditText>(R.id.et_lamp_name)
+        etLamp.setText(lamp.lampName)
+
+        dialog.findViewById<Button>(R.id.btn_save_edit).setOnClickListener {
+            val newLampName = etLamp.text.toString().trim()
+            if (newLampName.isNotEmpty()) {
+                updateLampNameInFirebase(lamp.lampId, newLampName)
+                dialog.dismiss()
+
+            } else {
+                Toast.makeText(this, "Lamp name cannot be empty", Toast.LENGTH_SHORT).show()
+            }
+
+
+        }
+        dialog.findViewById<Button>(R.id.btn_cancel_edit).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    private fun updateLampNameInFirebase(lampId: String?, newLampName: String) {
+        val lampRef = firebaseRef.child(lampId.toString())
+        lampRef.child("lampName").setValue(newLampName)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Lamp name updated successfully", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Failed to update lamp name", Toast.LENGTH_SHORT).show()
+            }
+
     }
 
     private fun saveLampData() {
@@ -141,7 +183,6 @@ class LampControllerActivity : AppCompatActivity() {
             Toast.makeText(this, "Failed to add lamp : ${err.message}", Toast.LENGTH_SHORT)
                 .show()
         }
-
 
     }
 }
