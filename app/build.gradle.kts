@@ -55,8 +55,8 @@ dependencies {
     implementation(libs.firebase.database)
     implementation(libs.firebase.auth)
 
-    implementation ("com.larswerkman:HoloColorPicker:1.5")
-    implementation ("com.github.codersrouteandroid:flexible-switch:1.0")
-    implementation ("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation ("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.larswerkman:HoloColorPicker:1.5")
+    implementation("com.github.codersrouteandroid:flexible-switch:1.0")
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 }

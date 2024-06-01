@@ -8,6 +8,7 @@ import android.view.View
 import android.view.Window
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -25,10 +26,10 @@ import com.google.firebase.database.ValueEventListener
 
 class LampControllerActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLampControllerBinding
-
     private lateinit var firebaseRef: DatabaseReference
     private lateinit var dialog: Dialog
-    private lateinit var lampList: ArrayList<LampResponse>
+    private var lampList: ArrayList<LampResponse> = arrayListOf()
+    private var isUpdating = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,51 +46,44 @@ class LampControllerActivity : AppCompatActivity() {
             insets
         }
 
-        // Set up the back button
+        setupUI()
+        getLampData()
+    }
+
+    private fun setupUI() {
         binding.back.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
 
-        // Set up RecyclerView
         binding.rvLampList.layoutManager = LinearLayoutManager(this)
         binding.rvLampList.setHasFixedSize(true)
-        lampList = arrayListOf<LampResponse>()
-        getLampData()
 
-//        binding.lampSwitch1.addOnStatusChangedListener { isChecked ->
-//            // Lakukan sesuatu ketika status berubah
-//            val imageResource = if (isChecked) {
-//                R.drawable.ic_bulb_on // Gambar untuk status tercentang
-//            } else {
-//                R.drawable.ic_bulb_off // Gambar untuk status tidak tercentang
-//            }
-//            binding.ivLamp1.setImageResource(imageResource)
-//        }
-
-        // Set up Add Lamp button
         binding.fabAddLamp.setOnClickListener {
-            // dialog = Dialog(this)
-            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-            dialog.setContentView(R.layout.dialog_add_lamp)
-            dialog.setCancelable(false)
-
-            dialog.findViewById<Button>(R.id.btn_save_add).setOnClickListener {
-                saveLampData()
-                dialog.dismiss()
-            }
-            dialog.findViewById<Button>(R.id.btn_cancel_add).setOnClickListener {
-                dialog.dismiss()
-            }
-            dialog.show()
+            showAddLampDialog()
         }
+    }
+
+    private fun showAddLampDialog() {
+        dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_add_lamp)
+        dialog.setCancelable(false)
+
+        dialog.findViewById<Button>(R.id.btn_save_add).setOnClickListener {
+            saveLampData()
+            dialog.dismiss()
+        }
+        dialog.findViewById<Button>(R.id.btn_cancel_add).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
     }
 
     private fun getLampData() {
         binding.rvLampList.visibility = View.GONE
         binding.progressBar.visibility = View.VISIBLE
 
-        firebaseRef = FirebaseDatabase.getInstance().getReference("Lamp")
         firebaseRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 lampList.clear()
@@ -98,29 +92,76 @@ class LampControllerActivity : AppCompatActivity() {
                         val lampData = lampSnap.getValue(LampResponse::class.java)
                         lampData?.let { lampList.add(it) }
                     }
-                    val mAdapter = LampAdapter(lampList, object : LampAdapter.onItemClickListener {
-                        override fun onItemClick(position: Int) {
-                            Log.d("TAG", "onItemClick: $position")
-                            showEditLampDialog(position)
-                        }
-                    })
-                    binding.rvLampList.adapter = mAdapter
-
+                    setupAdapter()
                     binding.rvLampList.visibility = View.VISIBLE
                     binding.progressBar.visibility = View.GONE
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                TODO("Not yet implemented")
+                handleFirebaseError(error)
             }
         })
     }
 
-    private fun showEditLampDialog(position: Int) {
+    private fun setupAdapter() {
+        val mAdapter = LampAdapter(lampList, object : LampAdapter.OnItemClickListener {
+            override fun onItemClick(position: Int) {
+                Log.d("TAG", "onItemClick: $position")
+                showEditLampDialog(position)
+            }
 
+            override fun onItemSwitch(position: Int, isChecked: Boolean) {
+                updateLampStatus(position, isChecked)
+            }
+        })
+        binding.rvLampList.adapter = mAdapter
+    }
+
+    private fun updateLampStatus(position: Int, isChecked: Boolean) {
         val lamp = lampList[position]
-        Log.d("TAG", "showEditLampDialog: ${lamp.lampName}")
+        val firebaseStatus = if (isChecked) 1 else 0
+
+        if (lamp.localStatus != firebaseStatus) {
+            lamp.localStatus = firebaseStatus
+            val imageView = binding.rvLampList.findViewHolderForAdapterPosition(position)
+                ?.itemView?.findViewById<ImageView>(R.id.iv_lamp)
+            imageView?.setImageResource(if (isChecked) R.drawable.ic_bulb_on else R.drawable.ic_bulb_off)
+
+            Log.d(
+                "LampControllerActivity",
+                "Lamp: ${lamp.lampName}, Firebase Status: $firebaseStatus"
+            )
+            updateLampStatusInFirebase(lamp.lampId, firebaseStatus)
+        }
+    }
+
+    private fun updateLampStatusInFirebase(lampId: String?, status: Int) {
+        if (isUpdating) return
+
+        isUpdating = true
+        val lampRef = firebaseRef.child(lampId.toString())
+        lampRef.child("firebaseStatus").setValue(status).addOnSuccessListener {
+            val updatedLamp = lampList.find { it.lampId == lampId }
+            updatedLamp?.let {
+                val index = lampList.indexOf(it)
+                if (index != -1) {
+                    lampList[index] = it.copyWithStatus(status, status)
+                    binding.rvLampList.adapter?.notifyItemChanged(index)
+                    Toast.makeText(this, "Lamp status updated successfully", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+            isUpdating = false
+        }.addOnFailureListener { error ->
+            Log.e("LampControllerActivity", "Failed to update lamp status: ${error.message}")
+            Toast.makeText(this, "Failed to update lamp status", Toast.LENGTH_SHORT).show()
+            isUpdating = false
+        }
+    }
+
+    private fun showEditLampDialog(position: Int) {
+        val lamp = lampList[position]
         dialog.setContentView(R.layout.dialog_edit_lamp)
         dialog.setCancelable(false)
 
@@ -132,12 +173,9 @@ class LampControllerActivity : AppCompatActivity() {
             if (newLampName.isNotEmpty()) {
                 updateLampNameInFirebase(lamp.lampId, newLampName)
                 dialog.dismiss()
-
             } else {
                 Toast.makeText(this, "Lamp name cannot be empty", Toast.LENGTH_SHORT).show()
             }
-
-
         }
         dialog.findViewById<Button>(R.id.btn_cancel_edit).setOnClickListener {
             dialog.dismiss()
@@ -147,42 +185,43 @@ class LampControllerActivity : AppCompatActivity() {
 
     private fun updateLampNameInFirebase(lampId: String?, newLampName: String) {
         val lampRef = firebaseRef.child(lampId.toString())
-        lampRef.child("lampName").setValue(newLampName)
-            .addOnSuccessListener {
-                Toast.makeText(this, "Lamp name updated successfully", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener {
-                Toast.makeText(this, "Failed to update lamp name", Toast.LENGTH_SHORT).show()
-            }
-
+        lampRef.child("lampName").setValue(newLampName).addOnSuccessListener {
+            Toast.makeText(this, "Lamp name updated successfully", Toast.LENGTH_SHORT).show()
+        }.addOnFailureListener {
+            Toast.makeText(this, "Failed to update lamp name", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun saveLampData() {
         val etLamp = dialog.findViewById<EditText>(R.id.et_lamp_name)
-
-        // Default value
-        val red = 0
-        val green = 0
-        val blue = 0
-        val hexCode = "#000000"
-        val status = 0
-
         val lampName = etLamp.text.toString()
 
         if (lampName.isEmpty()) {
             etLamp.error = "Lamp name cannot be empty"
+            return
         }
 
         val lampId = firebaseRef.push().key!!
+        val lamp = LampResponse(lampId, lampName, "#000000", 0, 0, 0, 0, 0)
 
-        val lamp = LampResponse(lampId, lampName, hexCode, red, green, blue, status)
-
-        firebaseRef.child(lampId).setValue(lamp).addOnCompleteListener {
-            Toast.makeText(this, "Lamp added successfully", Toast.LENGTH_SHORT).show()
-        }.addOnFailureListener { err ->
-            Toast.makeText(this, "Failed to add lamp : ${err.message}", Toast.LENGTH_SHORT)
-                .show()
+        if (lampList.none { it.localStatus == 1 }) {
+            firebaseRef.child(lampId).setValue(lamp).addOnCompleteListener {
+                Toast.makeText(this, "Lamp added successfully", Toast.LENGTH_SHORT).show()
+            }.addOnFailureListener { err ->
+                Toast.makeText(this, "Failed to add lamp: ${err.message}", Toast.LENGTH_SHORT)
+                    .show()
+            }
+        } else {
+            Toast.makeText(
+                this,
+                "Please turn off all lamps before adding a new one",
+                Toast.LENGTH_SHORT
+            ).show()
         }
+    }
 
+    private fun handleFirebaseError(error: DatabaseError) {
+        Log.e("LampControllerActivity", "Failed to read lamp data: ${error.message}")
+        Toast.makeText(this, "Failed to read lamp data", Toast.LENGTH_SHORT).show()
     }
 }

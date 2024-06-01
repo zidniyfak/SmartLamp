@@ -13,6 +13,7 @@
         android:layout_height="match_parent"
         android:padding="30dp"
         android:orientation="vertical">
+
         <ImageView
             android:id="@+id/ic_back"
             android:layout_width="wrap_content"
@@ -57,13 +58,13 @@
                     android:layout_height="wrap_content"
                     android:layout_margin="16dp"
                     app:srcCompat="@drawable/ic_nav_1"
-                    android:outlineAmbientShadowColor="@color/blue"/>
+                    android:outlineAmbientShadowColor="@color/blue" />
 
                 <View
                     android:id="@+id/lNavSelector4"
                     android:layout_width="25dp"
                     android:layout_height="5dp"
-                    android:background="#6A0DAD"
+                    android:background="@drawable/bg_blue"
                     android:visibility="visible" />
 
             </LinearLayout>
@@ -75,6 +76,7 @@
                 android:orientation="vertical"
                 android:gravity="center"
                 android:foreground="?android:attr/selectableItemBackground">
+
                 <ImageView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -97,6 +99,7 @@
                 android:orientation="vertical"
                 android:gravity="center"
                 android:foreground="?android:attr/selectableItemBackground">
+
                 <ImageView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -146,7 +149,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:fontFamily="@font/poppins_bold"
-                                android:text="01:00"
+                                android:text="00:00"
                                 android:textSize="20sp"
                                 app:layout_constraintBottom_toBottomOf="parent"
                                 app:layout_constraintStart_toStartOf="parent"

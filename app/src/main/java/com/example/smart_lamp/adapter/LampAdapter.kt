@@ -2,82 +2,58 @@ package com.example.smart_lamp.adapter
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
+import com.example.smart_lamp.R
 import com.example.smart_lamp.databinding.ItemLampBinding
 import com.example.smart_lamp.model.LampResponse
 
 class LampAdapter(
-    private val lampList: ArrayList<LampResponse>,
-    private val mListener: onItemClickListener,
-) :
-    RecyclerView.Adapter<LampAdapter.ViewHolder>() {
+    private var lampList: MutableList<LampResponse>,
+    private val listener: OnItemClickListener,
+) : RecyclerView.Adapter<LampAdapter.LampViewHolder>() {
 
-    interface onItemClickListener {
-        fun onItemClick(position: Int)
-    }
+    inner class LampViewHolder(private val binding: ItemLampBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+        init {
+            binding.root.setOnClickListener {
+                val position = adapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    listener.onItemClick(position)
+                }
+            }
+            binding.lampSwitch.addOnStatusChangedListener { isChecked ->
+                val position = adapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    listener.onItemSwitch(position, isChecked)
+                    lampList[position].localStatus = if (isChecked) 1 else 0
+                    binding.ivLamp.setImageResource(if (isChecked) R.drawable.ic_bulb_on else R.drawable.ic_bulb_off)
+                }
+            }
+        }
 
-    //    class ViewHolder(view: View, listener: onItemClickListener) : RecyclerView.ViewHolder(view) {
-//        val lampView: TextView
-//
-//        init {
-//            view.setOnClickListener {
-//                listener.onItemClick(adapterPosition)
-//            }
-//            lampView = view.findViewById(R.id.tv_lamp_name)
-//        }
-//
-//    }
-//
-//    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-//        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_lamp, parent, false)
-//        return ViewHolder(view, mListener)
-//    }
-//
-//    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-//        val currentLamp = lampList[position]
-//        holder.lampView.text = currentLamp.lampName
-//    }
-//
-//    override fun getItemCount() = lampList.size
-    class ViewHolder(private val binding: ItemLampBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(lamp: LampResponse, listener: onItemClickListener) {
+        fun bind(lamp: LampResponse) {
             binding.apply {
                 tvLampName.text = lamp.lampName
-                cvLamp.setOnClickListener {
-                    val position = adapterPosition
-                    if (position != RecyclerView.NO_POSITION) {
-                        listener.onItemClick(position)
-                    }
-                }
-                lampSwitch.addOnStatusChangedListener { isChecked ->
-                    if (isChecked) {
-                        Toast.makeText(
-                            itemView.context,
-                            "${lamp.lampName} is ON",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    } else {
-                        Toast.makeText(
-                            itemView.context,
-                            "${lamp.lampName} is OFF",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
+                lampSwitch.isChecked = lamp.localStatus == 1
+                ivLamp.setImageResource(if (lamp.localStatus == 1) R.drawable.ic_bulb_on else R.drawable.ic_bulb_off)
             }
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val inflater = LayoutInflater.from(parent.context)
-        val binding = ItemLampBinding.inflate(inflater, parent, false)
-        return ViewHolder(binding)
+    interface OnItemClickListener {
+        fun onItemClick(position: Int)
+        fun onItemSwitch(position: Int, isChecked: Boolean)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val currLamp = lampList[position]
-        holder.bind(currLamp, mListener)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LampViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
+        val binding = ItemLampBinding.inflate(inflater, parent, false)
+        return LampViewHolder(binding)
+    }
+
+    override fun onBindViewHolder(holder: LampViewHolder, position: Int) {
+        val currentItem = lampList[position]
+        holder.bind(currentItem)
     }
 
     override fun getItemCount() = lampList.size
